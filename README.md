@@ -1,21 +1,19 @@
-# DotsMOCR Viewer
+# Unlimited-OCR NVFP4 Viewer
 
-A lightweight web viewer and inference interface for **dots.mocr** (`dots_ocr`), powered by a **vLLM** backend and inspired by the LightOnOCR visual interface.
+A web viewer and inference interface for **Unlimited-OCR NVFP4** (`sahilchachra/Unlimited-OCR-NVFP4` based on `baidu/Unlimited-OCR`), served via an OpenAI-compatible **vLLM** backend.
 
-This tool enables multi-page document processing for PDFs and images, featuring interactive side-by-side layout grounding, bounding-box inspection, and formatted Markdown rendering.
+This tool enables document parsing for single images and multi-page PDFs, providing interactive side-by-side layout grounding, bounding-box inspection, and formatted Markdown rendering.
 
 ---
 
 ## Features
 
-* **Interactive Layout Grounding**: Visualizes bounding boxes directly on rendered document pages with synchronized card selection, highlighting, and label filtering.
-* **Flexible Prompt Support**: Full integration with `dots_ocr/utils/prompts.py` modes:
-* `prompt_layout_all_en` (Full layout block detection + markdown transcription)
-* `prompt_layout_only_en` (Layout bounding boxes only)
-* `prompt_scene_spotting` & `prompt_word_level_ocr` (Fine-grained word and scene text spotting with polygon extraction)
-* `prompt_ocr` / `prompt_markdown` (Document transcription to plain Markdown)
-* **Asynchronous Execution**: Background job queuing for long multi-page PDF runs.
-* **Accurate Normalization**: Scales model coordinate systems (0–1000, 2048, or resized aspect ratios) directly onto clean document canvas renders.
+* **Interactive Layout Grounding**: Visualizes bounding boxes directly on rendered document pages with synchronized card selection, hover highlighting, and category chips filtering (`title`, `text`, `table`, etc.).
+* **Two Core Parsing Modes**:
+* **Native Unlimited-OCR**: Preserves detection markers and overlays bounding boxes side-by-side with recognized text cards.
+* **Markdown View**: Automatically runs OmniDocBench/Unlimited-OCR post-processing to strip token markers and bounding coordinates, delivering clean Markdown.
+* **Asynchronous PDF Processing**: Background job execution with live status and progress polling for multi-page PDF documents.
+* **Zero Custom Parser Bloat**: Direct OpenAI-compatible API interaction using standard PyMuPDF page rendering—no reliance on external packages like `dots_ocr`.
 * **Math & Markdown Support**: Native formatting powered by `marked.js` and `KaTeX`.
 
 ---
@@ -23,73 +21,68 @@ This tool enables multi-page document processing for PDFs and images, featuring 
 ## Project Structure
 
 ```text
-DotsmOCR/
-├── dots_ocr/              # Core dots.mocr package (parser, models, prompts)
+Unlimited-OCR-NVFP4/
 ├── static/
-│   ├── app.css            # Dark/light adaptive interface styling
-│   └── app.js             # Viewer interactions, bounding-box rendering, API polling
-│   └── index.html         # Main web dashboard and run modal   
-├── server.py              # FastAPI server connecting to vLLM
-└── requirements.txt       # Python dependencies
+│   ├── app.css            # Dark/light adaptive dashboard styling
+│   └── app.js             # Viewer interactions, bounding-box overlays, and API polling
+│   └── index.html         # Main dashboard UI and run configuration dialog
+├── api.py                 # FastAPI backend handling PyMuPDF rendering and vLLM calls
+├── ocr_engine.py          # Standalone inference client / CLI testing tool
+└── requirements.txt       # Project dependencies
+
 ```
 
 ---
 
 ## Prerequisites
 
-* Python 3.10+
-* An active **vLLM** instance serving your multimodal model (e.g., `dots.mocr` at `http://<ip>:<port>/v1`)
+* Python 3.12+
+* An active **vLLM** instance serving `sahilchachra/Unlimited-OCR-NVFP4` (e.g., `[http://213.173.105.27:16666/v1](http://213.173.105.27:16666/v1)`)
 
 ---
 
 ## Installation
 
-1. **Clone the repository**:
+1. **Install dependencies**:
 
 ```bash
-git clone https://github.com/vishvaRam/DotsmOCR-Demo.git
-cd DotsmOCR
+pip install -r requirements.txt
+
 ```
 
-2. **Install dependencies**:
+*(or using `uv`)*:
 
 ```bash
-pip install fastapi uvicorn pymupdf pillow pydantic requests tqdm
-```
+uv pip install -r requirements.txt
 
-*(or use `uv sync` / `uv pip install -r requirements.txt`)*
+```
 
 ---
 
 ## Configuration & Usage
 
-1. **Configure Model Endpoint**:
-   Ensure `server.py` points to your active vLLM instance:
+1. **Environment Configuration**:
+   Create a `.env` file or export your environment variables:
 
-```python
-VLLM_CONFIG = {
-    "ip": "157.157.221.29",
-    "port": "25457",
-    "model_name": "Vishva007/dots.mocr-W4A16-AutoRound-GPTQ",
-    "dpi": 200,
-    "num_thread": 6,
-    "max_completion_tokens": 11384,
-}
+```ini
+VLLM_BASE_URL=http://vLLM-url/v1
+MODEL_NAME=sahilchachra/Unlimited-OCR-NVFP4
+VLLM_API_KEY=EMPTY
+
 ```
 
-*(You can also configure this dynamically via the **Model server** button in the UI)*.
+(Endpoints can also be updated dynamically in the UI via the **Model server** settings dialog).
 
-2. **Start the Viewer**:
+2. **Start the API & Viewer**:
 
 ```bash
-python server.py
-# or with uv:
-uv run server.py
+python api.py
+
 ```
 
 3. **Access the Interface**:
-   Open `http://localhost:8001` (or your machine's local network IP) in your browser.
+   Open `http://localhost:8003` in your browser.
 
-* Click **New run** or drag and drop a PDF/image.
-* Select your target **Prompt Mode** from `prompts.py`.
-* Inspect layout tags, bounding boxes, and Markdown output side-by-side.
+* Click **New run** or drag and drop a PDF or image into the window.
+* Choose **Native Unlimited-OCR** (with bounding boxes) or **Markdown View** (clean document layout).
+* Inspect bounding boxes, extracted text, and rendered markdown side-by-side.
